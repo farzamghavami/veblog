@@ -255,7 +255,6 @@ class CommentDelete(APIView):
         comment.is_active = False
         comment.save()
         serializer = self.serializer_class(comment)
-        return Response(serializer.data, status=status.HTTP_204_NO_CONTENT)
 
 @extend_schema(
     tags=["comments"])
