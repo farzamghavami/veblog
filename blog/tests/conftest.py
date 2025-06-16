@@ -2,7 +2,7 @@ import pytest
 from _pytest.nodes import Item
 from rest_framework.test import APIClient
 from rest_framework_simplejwt.tokens import AccessToken
-from blog.models import User
+from blog.models import User,Blog
 
 @pytest.fixture
 def admin_user(django_user_model):
@@ -57,3 +57,11 @@ def token_another_user_client(another_user):
     token = AccessToken.for_user(another_user)
     client.credentials(HTTP_AUTHORIZATION=f"Bearer {token}")
     return client
+
+@pytest.fixture
+def blog_by_regular_user(regular_user):
+    return Blog.objects.create(
+        title="MyBlog",
+        content="Some content",
+        author=regular_user,
+    )

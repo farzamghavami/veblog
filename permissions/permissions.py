@@ -29,15 +29,15 @@ class IsOwnerOrAdmin(BasePermission):
             return obj
 
         # حالت مستقیم
-        for attr in ["user", "owner"]:
+        for attr in ["user", "owner","author"]:
             if hasattr(obj, attr):
                 return getattr(obj, attr)
 
         # حالت غیرمستقیم
-        for relation in ["order", "shop", "product"]:
+        for relation in ["order", "shop", "product",]:
             related_obj = getattr(obj, relation, None)
             if related_obj:
-                for attr in ["user", "owner"]:
+                for attr in ["user", "owner","author"]:
                     if hasattr(related_obj, attr):
                         return getattr(related_obj, attr)
 

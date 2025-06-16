@@ -20,10 +20,10 @@ urlpatterns = [
     path('blogs/delete/<int:pk>', BlogsDeleteView.as_view(), name='blog-delete'),
 
     #urls for comment
-    path('comments/', CommentList.as_view(), name='comment-list-create'),
-    path('comments/create/', CommentCreate.as_view(), name='comment-list-create'),
+    path('comments/', CommentList.as_view(), name='comment-list'),
+    path('comments/create/', CommentCreate.as_view(), name='comment-create'),
     path('comments/update/<int:pk>', CommentUpdate.as_view(), name='comment-update'),
     path('comments/delete/<int:pk>', CommentDelete.as_view(), name='comment-delete'),
-    path('blogs/coments/<int:pk>', BlogsCommentListView.as_view(), name='comment-list-create'),
+    path('blogs/coments/<int:pk>', BlogsCommentListView.as_view(), name='comment-blog-list'),
 
 ]

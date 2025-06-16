@@ -202,6 +202,7 @@ class BlogsDeleteView(APIView):
 
     def delete(self, request, pk):
         blog = get_object_or_404(Blog, pk=pk)
+        self.check_object_permissions(request, blog)
         blog.is_active = False
         blog.save()
         serializer = self.serializer_class(blog)

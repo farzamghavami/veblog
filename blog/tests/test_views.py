@@ -100,7 +100,12 @@ class TestBlogViews:
         response = token_regular_user_client.get(url)
         assert response.status_code == 200
 
-    def test_blog_create(self, token_regular_user_client):
+    def test_blog_list_unauthenticated(self, client):
+        url = reverse("blog-list")
+        response = client.get(url)
+        assert response.status_code == 401
+
+    def test_authenticated_user_blog_create(self, token_regular_user_client):
         url = reverse("blog-create")
         data = {
             "title": "Test Blog",
@@ -109,36 +114,92 @@ class TestBlogViews:
         response = token_regular_user_client.post(url, data)
         assert response.status_code == 201
 
-    def test_blog_update(self, token_regular_user_client, blog_instance):
-        url = reverse("blog-update", kwargs={"pk": blog_instance.pk})
-        data = {"title": "Updated Title"}
+    def test_unauthenticated_user_blog_create(self, client):
+        url = reverse("blog-create")
+        data = {
+            "title": "Test Blog",
+            "content": "Some content here."
+        }
+        response = client.post(url, data)
+        assert response.status_code == 401
+
+    def test_owner_can_update_own_blog(self, blog_by_regular_user, token_regular_user_client):
+        url = reverse("blog-update", kwargs={"pk": blog_by_regular_user.pk})
+        data = {"title": "Updated-Title"}
         response = token_regular_user_client.put(url, data)
         assert response.status_code == 200
-        assert response.data["title"] == "Updated Title"
+        assert response.data["title"] == "Updated-Title"
 
-    def test_blog_delete(self, token_regular_user_client, blog_instance):
-        url = reverse("blog-delete", kwargs={"pk": blog_instance.pk})
+
+    def test_admin_can_update_user_blog(self, blog_by_regular_user, token_admin_client):
+        url = reverse("blog-update", kwargs={"pk": blog_by_regular_user.pk})
+        data = {"title": "Updated-Title"}
+        response = token_admin_client.put(url, data)
+        assert response.status_code == 200
+        assert response.data["title"] == "Updated-Title"
+
+    def test_another_user_cannot_update_regular_user(self, blog_by_regular_user, token_another_user_client):
+        url = reverse("blog-update", kwargs={"pk": blog_by_regular_user.pk})
+        data = {"title": "Updated-Title"}
+        response = token_another_user_client.put(url, data)
+        assert response.status_code == 403
+
+
+    def test_user_can_deactive_own_blog(self, token_regular_user_client, blog_by_regular_user):
+        url = reverse("blog-delete", kwargs={"pk": blog_by_regular_user.pk})
         response = token_regular_user_client.delete(url)
         assert response.status_code == 204
+        blog_by_regular_user.refresh_from_db()
+        assert blog_by_regular_user.is_active is False
+
+    def test_another_user_can_deactive_others_blog(self, token_another_user_client, blog_by_regular_user):
+        url = reverse("blog-delete", kwargs={"pk": blog_by_regular_user.pk})
+        response = token_another_user_client.delete(url)
+        assert response.status_code == 403
+
+    def test_admin_can_deactive_users_blog(self, token_regular_user_client, blog_by_regular_user):
+        url = reverse("blog-delete", kwargs={"pk": blog_by_regular_user.pk})
+        response = token_regular_user_client.delete(url)
+        assert response.status_code == 204
+        blog_by_regular_user.refresh_from_db()
+        assert blog_by_regular_user.is_active is False
 
 
 
 @pytest.mark.django_db
 class TestCommentViews:
 
-    def test_comment_list(self, token_regular_user_client):
+    def test_authenticated_user_comment_list(self, token_regular_user_client):
         url = reverse("comment-list")
         response = token_regular_user_client.get(url)
         assert response.status_code == 200
 
-    def test_comment_create(self, token_regular_user_client, blog_instance):
+    def test_unauthenticated_user_comment_list(self, client):
+        url = reverse("comment-list")
+        response = client.get(url)
+        assert response.status_code == 401
+
+    def test_authenticated_user_can_create_comment(self, token_regular_user_client, blog_by_regular_user):
         url = reverse("comment-create")
         data = {
             "content": "Nice blog!",
-            "post": blog_instance.id
+            "post": blog_by_regular_user.id,
+            "parent":""
         }
         response = token_regular_user_client.post(url, data)
         assert response.status_code == 201
+        assert response.data["content"] == "Nice blog!"
+
+    def test_unauthenticated_user_can_create_comment(self, client, blog_by_regular_user):
+        url = reverse("comment-create")
+        data = {
+            "content": "Nice blog!",
+            "post": blog_by_regular_user.id
+        }
+        response = client.post(url, data)
+        assert response.status_code == 401
+
+
 
     def test_comment_update(self, token_regular_user_client, comment_instance):
         url = reverse("comment-update", kwargs={"pk": comment_instance.pk})
