@@ -21,10 +21,12 @@ class UserSerializer(serializers.ModelSerializer):
             "password2",
             "created_at",
             "updated_at",
+            "is_active",
         ]
         extra_kwargs = {
             "created_at": {"read_only": True},
             "updated_at": {"read_only": True},
+            "is_active": {"read_only": True},
         }
 
     def validate(self, attrs):
@@ -59,9 +61,10 @@ class BlogSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Blog
-        fields = ['id', 'title', 'content', 'created_at','updated_at', 'author']
+        fields = ['id', 'title', 'content', 'created_at','updated_at', 'author','is_active']
 
 class CommentSerializer(serializers.ModelSerializer):
     class Meta:
         model = Comment
         fields = '__all__'
+        extra_kwargs = {"author": {"read_only": True}}

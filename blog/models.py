@@ -26,6 +26,7 @@ class Blog(Time):
     content = models.TextField()
     status = models.BooleanField(default=False)
     published = models.BooleanField(default=False)
+    is_active = models.BooleanField(default=True)
 
     class Meta:
         ordering = ['-created_at']
@@ -37,6 +38,8 @@ class Comment(Time):
     author  = models.ForeignKey(User, on_delete=models.CASCADE, related_name='comments')
     post  = models.ForeignKey(Blog, on_delete=models.CASCADE,)
     content = models.TextField()
+    is_active = models.BooleanField(default=True)
+    parent = models.ForeignKey("self", null=True, blank=True, on_delete=models.CASCADE, related_name="replies")
 
 
 

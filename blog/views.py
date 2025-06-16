@@ -1,117 +1,266 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from rest_framework import status, generics
+from rest_framework import status
+from drf_spectacular.utils import extend_schema, OpenApiParameter, OpenApiTypes
+from django_filters.rest_framework import DjangoFilterBackend
+from rest_framework import filters
 from .models import User, Blog, Comment
 from .serializers import UserSerializer, BlogSerializer, CommentSerializer
 from rest_framework.permissions import IsAuthenticated,IsAdminUser
 from django.shortcuts import get_object_or_404
-from rest_framework.authtoken.views import obtain_auth_token
+from rest_framework.generics import ListAPIView
+import jwt
+from django.conf import settings
+from rest_framework.exceptions import AuthenticationFailed
+from permissions.permissions import IsOwnerOrAdmin
+
+
 
 
 # ---------------- User ----------------
-class Home(APIView):
+#this is for adding description for fields like search, ordering and pagination
+@extend_schema(
+    tags=["Users"],
+    parameters=[
+        OpenApiParameter(
+            name="is_active",
+            type=OpenApiTypes.BOOL,
+            location=OpenApiParameter.QUERY,
+            description="filter for active users",
+        ),
+        OpenApiParameter(
+            name="is_staff",
+            type=OpenApiTypes.BOOL,
+            location=OpenApiParameter.QUERY,
+            description="filter for staff users(true or false)",
+        ),
+        OpenApiParameter(
+            name="search",
+            type=OpenApiTypes.STR,
+            location=OpenApiParameter.QUERY,
+            description="search by username, email,date joined",
+        ),
+        OpenApiParameter(
+            name="ordering",
+            type=OpenApiTypes.STR,
+            location=OpenApiParameter.QUERY,
+            description="ordering by username, email and date joined)",
+        ),
+    ],
+)
+
+@extend_schema(
+    tags=["Users"])
+class UserList(ListAPIView):
     """
-    for create and list of users
+    user list
     """
+
+    permission_classes = [IsAdminUser]
     serializer_class = UserSerializer
-    def get(self, request):
-        users = User.objects.all()
-        serializer = UserSerializer(users, many=True)
+    queryset = User.objects.all()
+
+    filter_backends = [
+        DjangoFilterBackend,
+        filters.SearchFilter,
+        filters.OrderingFilter,
+    ]
+    filterset_fields = ["is_active", "is_staff"]
+    search_fields = ["username", "email", "first_name", "last_name"]
+    ordering_fields = ["username", "email", "date_joined"]
+
+
+@extend_schema(
+    tags=["Users"])
+class UserDetailView(APIView):
+    permission_classes = [IsAdminUser]
+    serializer_class = UserSerializer
+
+    def get(self, request, pk=None):
+        user = get_object_or_404(User, pk=pk)
+        self.check_object_permissions(request, user)
+        serializer = self.serializer_class(user)
         return Response(serializer.data)
 
+@extend_schema(
+    tags=["Users"])
+class UserCreateView(APIView):
+    """
+    regitster new user
+    """
+    serializer_class = UserSerializer
     def post(self, request):
-        serializer = UserSerializer(data=request.data)
+        serializer = self.serializer_class(data=request.data)
+
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+@extend_schema(
+    tags=["Users"])
+class UserUpdateView(APIView):
+    """
+    update user
+    """
+    permission_classes = [IsOwnerOrAdmin]
+    serializer_class = UserSerializer
+    def put(self, request, pk=None):
+        user = get_object_or_404(User, pk=pk)
+        self.check_object_permissions(request, user)
+        serializer = self.serializer_class(user, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+@extend_schema(
+    tags=["Users"])
+class UserDelete(APIView):
+    permission_classes = [IsOwnerOrAdmin]
+    serializer_class = UserSerializer
+
+    def delete(self, request, pk=None):
+        user = get_object_or_404(User, pk=pk)
+        user.is_active = False
+        user.save()
+        serializer = self.serializer_class(user)
+        return Response(serializer.data, status=status.HTTP_204_NO_CONTENT)
+
+
 
 # ---------------- Blog ----------------
-class BlogsListView(APIView):
+
+@extend_schema(
+    tags=["blog"])
+class BlogsListView(ListAPIView):
     """
     get all blogs
     """
     permission_classes = [IsAuthenticated, ]
     serializer_class = BlogSerializer
 
-    def get(self, request):
-        blogs = Blog.objects.all()
-        serializer = BlogSerializer(blogs, many=True)
-        return Response(serializer.data)
+    queryset = Blog.objects.all()
+
+    filter_backends = [
+        DjangoFilterBackend,
+        filters.SearchFilter,
+        filters.OrderingFilter,
+    ]
+    search_fields = ["title","author"]
+    ordering_fields = ["created_at"]
 
 
+
+@extend_schema(
+    tags=["blog"])
 class BlogsCreatView(APIView):
     """
-    create new blog
+    create blog
     """
     permission_classes = [IsAuthenticated]
     serializer_class = BlogSerializer
 
     def post(self, request):
         serializer = BlogSerializer(data=request.data)
-        current_user = get_current_user_from_token(request.data)
+        current_user = get_current_user_from_token(request)
         if serializer.is_valid():
             serializer.save(author=current_user)
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
+@extend_schema(
+    tags=["blog"])
 class BlogsUpdateView(APIView):
     """
     update blog
     """
-    permission_classes = [IsAuthenticated, ]
+    permission_classes = [IsOwnerOrAdmin]
     serializer_class = BlogSerializer
 
     def put(self, request, pk):
-        blog = Blog.objects.get(pk=pk)
-        serializer = BlogSerializer(instance=blog, data=request.data, partial=True)
+        blog = get_object_or_404(Blog, pk=pk)
+        self.check_object_permissions(request, blog)
+        serializer = self.serializer_class(blog, data=request.data,partial=True)
         if serializer.is_valid():
-            serializer.save()
+            serializer.save(author = blog.author)
             return Response(serializer.data, status=status.HTTP_200_OK)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
+@extend_schema(
+    tags=["blog"])
 class BlogsDeleteView(APIView):
     """
     delete blog
     """
-    permission_classes = [IsAuthenticated, ]
+    permission_classes = [IsOwnerOrAdmin, ]
     serializer_class = BlogSerializer
 
     def delete(self, request, pk):
-        blog = Blog.objects.get(pk=pk)
+        blog = get_object_or_404(Blog, pk=pk)
         blog.is_active = False
         blog.save()
-        serializer = BlogSerializer(blog)
+        serializer = self.serializer_class(blog)
         return Response(serializer.data, status=status.HTTP_204_NO_CONTENT)
 
+
+@extend_schema(
+    tags=["comments"])
 class CommentList(APIView):
 
     serializer_class = CommentSerializer
     permission_classes = [IsAuthenticated, ]
 
-    def get(self):
+    def get(self,request):
         comment = Comment.objects.all()
-        serializer_data = CommentSerializer(comment, many=True)
-        return Response(serializer_data.data)
+        serializer_data = self.serializer_class(comment, many=True)
+        return Response(serializer_data.data,status=status.HTTP_200_OK)
 
 
-
+@extend_schema(
+    tags=["comments"])
 class CommentCreate(APIView):
     serializer_class = CommentSerializer
     permission_classes = [IsAuthenticated, ]
 
     def post(self, request):
-        serializer_data = CommentSerializer(data=request.data)
-        current_user = get_current_user_from_token(request.data)
+        serializer_data = self.serializer_class(data=request.data)
+        current_user = get_current_user_from_token(request)
         if serializer_data.is_valid():
             serializer_data.save(author=current_user)
             return Response(serializer_data.data, status=status.HTTP_201_CREATED)
         return Response(serializer_data.errors, status=status.HTTP_400_BAD_REQUEST)
 
-class CommentList(APIView):
-    permission_classes = [IsAuthenticated, ]
+class CommentUpdate(APIView):
+    permissions_classes = [IsOwnerOrAdmin]
+    serializer_class = CommentSerializer
+    def put(self, request, pk):
+        comment = get_object_or_404(Comment, pk=pk)
+        self.check_object_permissions(request, comment)
+        serializer = self.serializer_class(comment, data=request.data,partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class CommentDelete(APIView):
+    permission_classes = [IsOwnerOrAdmin]
+    serializer_class = CommentSerializer
+    def delete(self, request, pk):
+        comment = get_object_or_404(Comment, pk=pk)
+        comment.is_active = False
+        comment.save()
+        serializer = self.serializer_class(comment)
+        return Response(serializer.data, status=status.HTTP_204_NO_CONTENT)
+
+@extend_schema(
+    tags=["comments"])
+class CommentListView(APIView):
+    # permission_classes = [IsAuthenticated, ]
     serializer_class = CommentSerializer
 
     def get(self, request):
@@ -119,14 +268,18 @@ class CommentList(APIView):
         serializer_data = CommentSerializer(comments, many=True)
         return Response(serializer_data.data)
 
-class BlogsComentsList(APIView):
+@extend_schema(
+    tags=["comments"])
+class BlogsCommentListView(APIView):
     permission_classes = [IsAuthenticated, ]
     serializer_class = CommentSerializer
     def get(self, request,pk):
-        blog = Blog.objects.get(pk=pk)
+        blog = get_object_or_404(Blog, pk=pk)
         coments = Comment.objects.filter(post=blog)
         serializer_data = CommentSerializer(coments, many=True)
         return Response(serializer_data.data)
+
+
 
 
 def get_current_user_from_token(request):

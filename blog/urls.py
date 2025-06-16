@@ -1,17 +1,29 @@
 from django.urls import path
-from .views import Home, BlogsCreatView, BlogsListView, CommentCreate, BlogsUpdateView, BlogsDeleteView, CommentList, \
-    BlogsComentsList
-from rest_framework.authtoken.views import obtain_auth_token
+from .views import UserList, UserDelete, UserDetailView, UserCreateView, BlogsCreatView, BlogsListView, CommentCreate, \
+    BlogsUpdateView, \
+    BlogsDeleteView, CommentList, \
+    BlogsCommentListView, UserUpdateView, CommentUpdate, CommentDelete
 
 urlpatterns = [
-    path('', Home.as_view(), name='user-list'),
-    path('blogs/', BlogsListView.as_view(), name='blog-detail'),
-    path('blogs/create/', BlogsCreatView.as_view(), name='blog-list'),
+
+    #urls for users crud
+    path('register/', UserCreateView.as_view(), name='user-create'),
+    path('users', UserList.as_view(), name='user-list'),
+    path('user/detail/<int:pk>',UserDetailView.as_view(), name='user-detail'),
+    path('user/update/<int:pk>', UserUpdateView.as_view(), name='user-update'),
+    path('user/delete/<int:pk>', UserDelete.as_view(), name='user-delete'),
+
+    #urls for blogs
+    path('blogs/', BlogsListView.as_view(), name='blog-list'),
+    path('blogs/create/', BlogsCreatView.as_view(), name='blog-create'),
     path('blogs/update/<int:pk>', BlogsUpdateView.as_view(), name='blog-update'),
-    path('blogs/delete/<int:pk>', BlogsDeleteView.as_view(), name='blog-list'),
-    path('api-token-auth/', obtain_auth_token, name='api_token_auth'),
+    path('blogs/delete/<int:pk>', BlogsDeleteView.as_view(), name='blog-delete'),
+
+    #urls for comment
     path('comments/', CommentList.as_view(), name='comment-list-create'),
     path('comments/create/', CommentCreate.as_view(), name='comment-list-create'),
-    path('blogs/coments/<int:pk>', BlogsComentsList.as_view(), name='comment-list-create'),
+    path('comments/update/<int:pk>', CommentUpdate.as_view(), name='comment-update'),
+    path('comments/delete/<int:pk>', CommentDelete.as_view(), name='comment-delete'),
+    path('blogs/coments/<int:pk>', BlogsCommentListView.as_view(), name='comment-list-create'),
 
 ]
