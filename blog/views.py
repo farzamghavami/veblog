@@ -259,7 +259,7 @@ class CommentDelete(APIView):
 @extend_schema(
     tags=["comments"])
 class CommentListView(APIView):
-    # permission_classes = [IsAuthenticated, ]
+    permission_classes = [IsAuthenticated, ]
     serializer_class = CommentSerializer
 
     def get(self, request):
