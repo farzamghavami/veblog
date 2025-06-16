@@ -237,7 +237,7 @@ class CommentCreate(APIView):
         return Response(serializer_data.errors, status=status.HTTP_400_BAD_REQUEST)
 
 class CommentUpdate(APIView):
-    permissions_classes = [IsOwnerOrAdmin]
+    permission_classes = [IsOwnerOrAdmin]
     serializer_class = CommentSerializer
     def put(self, request, pk):
         comment = get_object_or_404(Comment, pk=pk)

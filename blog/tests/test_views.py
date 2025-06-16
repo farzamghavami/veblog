@@ -201,12 +201,27 @@ class TestCommentViews:
 
 
 
-    def test_comment_update(self, token_regular_user_client, comment_instance):
-        url = reverse("comment-update", kwargs={"pk": comment_instance.pk})
+    def test_owner_update_comment(self, token_regular_user_client, comment_by_regular_user):
+        url = reverse("comment-update", kwargs={"pk": comment_by_regular_user.pk})
         data = {"content": "Updated comment"}
         response = token_regular_user_client.put(url, data)
         assert response.status_code == 200
         assert response.data["content"] == "Updated comment"
+
+    def test_another_user_update_comment(self, token_another_user_client, comment_by_regular_user):
+        url = reverse("comment-update", kwargs={"pk": comment_by_regular_user.pk})
+        data = {"content": "Updated comment"}
+        response = token_another_user_client.put(url, data)
+        assert response.status_code == 403
+
+    def test_admin_can_update_comment(self, token_admin_client, comment_by_regular_user):
+        url = reverse("comment-update", kwargs={"pk": comment_by_regular_user.pk})
+        data = {"content": "Updated comment"}
+        response = token_admin_client.put(url, data)
+        assert response.status_code == 200
+
+
+
 
     def test_comment_delete(self, token_regular_user_client, comment_instance):
         url = reverse("comment-delete", kwargs={"pk": comment_instance.pk})

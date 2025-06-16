@@ -2,7 +2,8 @@ import pytest
 from _pytest.nodes import Item
 from rest_framework.test import APIClient
 from rest_framework_simplejwt.tokens import AccessToken
-from blog.models import User,Blog
+from blog.models import User, Blog, Comment
+
 
 @pytest.fixture
 def admin_user(django_user_model):
@@ -64,4 +65,12 @@ def blog_by_regular_user(regular_user):
         title="MyBlog",
         content="Some content",
         author=regular_user,
+    )
+
+@pytest.fixture
+def comment_by_regular_user(regular_user,blog_by_regular_user):
+    return Comment.objects.create(
+        author=regular_user,
+        post=blog_by_regular_user,
+        content="Nice blog!",
     )
