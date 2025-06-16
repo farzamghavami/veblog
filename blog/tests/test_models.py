@@ -2,8 +2,6 @@ import pytest
 from blog.models import User, Blog, Comment
 from django.utils import timezone
 
-!
-
 @pytest.mark.django_db
 class TestBlogModel:
     @pytest.fixture
@@ -78,3 +76,4 @@ class TestCommentModel:
         )
         assert reply.parent == parent
         assert reply in parent.replies.all()
+

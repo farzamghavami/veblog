@@ -73,7 +73,7 @@ class UserList(ListAPIView):
 @extend_schema(
     tags=["Users"])
 class UserDetailView(APIView):
-    permission_classes = [IsAdminUser]
+    permission_classes = [IsOwnerOrAdmin]
     serializer_class = UserSerializer
 
     def get(self, request, pk=None):
@@ -123,6 +123,7 @@ class UserDelete(APIView):
 
     def delete(self, request, pk=None):
         user = get_object_or_404(User, pk=pk)
+        self.check_object_permissions(request, user)
         user.is_active = False
         user.save()
         serializer = self.serializer_class(user)
