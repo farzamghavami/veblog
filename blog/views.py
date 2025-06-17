@@ -89,9 +89,9 @@ class UserCreateView(APIView):
     regitster new user
     """
     serializer_class = UserSerializer
+
     def post(self, request):
         serializer = self.serializer_class(data=request.data)
-
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data, status=status.HTTP_201_CREATED)
@@ -254,9 +254,11 @@ class CommentDelete(APIView):
     serializer_class = CommentSerializer
     def delete(self, request, pk):
         comment = get_object_or_404(Comment, pk=pk)
+        self.check_object_permissions(request, comment)
         comment.is_active = False
         comment.save()
         serializer = self.serializer_class(comment)
+        return Response(serializer.data, status=status.HTTP_204_NO_CONTENT)
 
 @extend_schema(
     tags=["comments"])

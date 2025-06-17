@@ -46,7 +46,8 @@ class TestUserListViews:
             "username": "newuser",
             "email": "new@example.com",
             "phone": "09123456789",
-            "password": "testpass123"
+            "password1": "testpass123",
+            "password2": "testpass123",
         }
         response = client.post(url, data)
         assert response.status_code == 201
@@ -223,7 +224,21 @@ class TestCommentViews:
 
 
 
-    def test_comment_delete(self, token_regular_user_client, comment_instance):
-        url = reverse("comment-delete", kwargs={"pk": comment_instance.pk})
+    def test_owner_delete_comment(self, token_regular_user_client, comment_by_regular_user):
+        url = reverse("comment-delete", kwargs={"pk": comment_by_regular_user.pk})
         response = token_regular_user_client.delete(url)
         assert response.status_code == 204
+        comment_by_regular_user.refresh_from_db()
+        assert comment_by_regular_user.is_active is False
+
+    def test_another_user_delete_comment(self, token_another_user_client, comment_by_regular_user):
+        url = reverse("comment-delete", kwargs={"pk": comment_by_regular_user.pk})
+        response = token_another_user_client.delete(url)
+        assert response.status_code == 403
+
+    def test_admin_can_delete_comment(self, token_admin_client, comment_by_regular_user):
+        url = reverse("comment-delete", kwargs={"pk": comment_by_regular_user.pk})
+        response = token_admin_client.delete(url)
+        assert response.status_code == 204
+        comment_by_regular_user.refresh_from_db()
+        assert comment_by_regular_user.is_active is False
